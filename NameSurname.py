@@ -47,7 +47,7 @@ if rank == 0:
     totalUnigramCount = dict()
     totalBigramCount = dict()
 
-    # If N > 1
+    # If N > 1 (There is at least 1 worker process.)
     if size > 1:
         parititonSize = len(sentences) // workerCount
         rem = len(sentences) % workerCount # remainder
@@ -105,12 +105,11 @@ if rank == 0:
                 totalUnigramCount[unigram] = totalUnigramCount.get(unigram, 0) + 1
             
             # List of bigrams
-            bigramsofSentence = list()
             for i in range(len(unigramsOfSentence) - 1):
                 bigram = unigramsOfSentence[i] + " " + unigramsOfSentence[i+1]
                 totalBigramCount[bigram] = totalBigramCount.get(bigram, 0) + 1
 
-    # Requiement 4 (Calculating conditional probabilities)
+    # Requirement 4 (Calculating conditional probabilities)
     text_file = open(args['test_file']) 
     bulk_test_data = text_file.read()   # read whole file to a string
     text_file.close()                   # close file
@@ -148,21 +147,17 @@ else:
             unigramCount[unigram] = unigramCount.get(unigram, 0) + 1
         
         # List of bigrams
-        bigramsofSentence = list()
         for i in range(len(unigramsOfSentence) - 1):
             bigram = unigramsOfSentence[i] + " " + unigramsOfSentence[i+1]
             bigramCount[bigram] = bigramCount.get(bigram, 0) + 1
     
     # Merge data
-
-    # Case 1
-    if merge_method == 'MASTER':
+    if merge_method == 'MASTER': # Case 1
         # Send data to master
         comm.send(obj = unigramCount, dest = 0, tag = 2 * rank)
         comm.send(obj = bigramCount,  dest = 0, tag = 2 * rank + 1)
-        
-    # Case 2 
-    elif merge_method == 'WORKERS':
+    
+    elif merge_method == 'WORKERS': # Case 2 
 
         # Get data from previous worker (don't do this if rank == 1)
         if(rank > 1):
