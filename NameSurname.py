@@ -81,7 +81,7 @@ if rank == 0:
             
             # Merge bigrams counted by the worker
             for bigram, count in  bigramCount.items():
-                totalBigramCount[bigram] = totalUnigramCount.get(bigram, 0) + count
+                totalBigramCount[bigram] = totalBigramCount.get(bigram, 0) + count
 
         ## TODO: Erase these later    
         #print ("TOTAL UNIGRAMS\n",totalUnigramCount)
@@ -98,17 +98,19 @@ if rank == 0:
 
     # TODO: Requiement 4 (Calculating conditional probabilities)
 
-    text_file = open(args['test_file']) 
-        
-    for line in text_file:
-        a = line.split(" ")[0]
-        b = line.split(" ")[1]
+    text_file2 = open(args['test_file']) 
+    
+    for line in text_file2:
+        temp = line[:-1]
+        a = temp.split(" ")[0]
+        b = temp.split(" ")[1]
         denominator = totalUnigramCount[a]
-        nominator = totalBigramCount[line]
+        nominator = totalBigramCount[temp]
         cond_prob = nominator / denominator
-        print ("P(" + b + "|" + a + ") =" + cond_prob)
+        str_cond_prob = str(cond_prob)
+        print ("P(" + b + "|" + a + ")= " + str_cond_prob)
 
-    text_file.close()   
+    text_file2.close()   
 
 ### Worker process ###
 else:
@@ -150,6 +152,7 @@ else:
     elif merge_method == 'WORKERS':
 
         # TODO: get data from previous worker (don't do this if rank == 1)
+
         if(rank > 1):
             previousWorker = rank - 1
             prevUnigramCount = comm.recv(source = previousWorker, tag = 2 * previousWorker)
