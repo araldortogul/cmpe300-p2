@@ -90,9 +90,8 @@ if rank == 0:
     # Case 2
     elif args['merge_method'] == 'WORKERS':
         # TODO: get unigram and bigram data from last worker (Send the unigram data with tag 2, bigram data with tag 3)
-        totalUnigramCount = comm.recv(source = workerCount, tag = 2)
-        totalBigramCount  = comm.recv(source = workerCount, tag = 3)
-        print('merging workers here')
+        totalUnigramCount = comm.recv(source = workerCount, tag = 2 * workerCount)
+        totalBigramCount  = comm.recv(source = workerCount, tag = 2 * workerCount + 1)
     
     else:
         raise Exception('Error: Unknown merge method.')
@@ -145,34 +144,32 @@ else:
 
     # Case 1
     if merge_method == 'MASTER':
+        # Send data to master
         comm.send(obj = unigramCount, dest = 0, tag = 2 * rank)
         comm.send(obj = bigramCount,  dest = 0, tag = 2 * rank + 1)
-        # send data to master
-
+        
     # Case 2 
     elif merge_method == 'WORKERS':
 
         # TODO: get data from previous worker (don't do this if rank == 1)
-        if(rank != 1):
-            unigramCount2 = comm.recv(source = rank - 1, tag = 2 * rank)
-            bigramCount2  = comm.recv(source = rank - 1, tag = 2 * rank + 1)
+
+        if(rank > 1):
+            previousWorker = rank - 1
+            prevUnigramCount = comm.recv(source = previousWorker, tag = 2 * previousWorker)
+            prevBigramCount  = comm.recv(source = previousWorker, tag = 2 * previousWorker + 1)
 
         # TODO: merge this worker's data and the data obtained from the previous worker
-            for unigram, count in unigramCount2.items():
-                unigramCount[unigram] = unigramCount.get(unigram, 0) + count
+        for unigram, count in unigramCount.items():
+            unigramCount[unigram] = prevUnigramCount.get(unigram, 0) + count
         
         # Merge bigrams counted by the worker
-            for bigram, count in  bigramCount.items():
-                bigramCount[bigram] = bigramCount.get(bigram, 0) + count
+        for bigram, count in  bigramCount.items():
+            unigramCount[bigram] = prevBigramCount.get(bigram, 0) + count
 
         # TODO: send merged data to next worker (or to master if rank == workerCount)
-        if(rank == workerCount):
-            comm.send(obj = unigramCount, dest = rank + 1, tag = 2 * rank)
-            comm.send(obj = bigramCount,  dest = rank + 1, tag = 2 * rank + 1)
-        else:
-            comm.send(obj = unigramCount, dest = 0, tag = 2 * rank)
-            comm.send(obj = bigramCount,  dest = 0, tag = 2 * rank + 1)
-        print('handle unigram and bigram data here')
+        destination = 0 if rank == workerCount else (rank + 1)
+        comm.send(obj = unigramCount, dest = destination, tag = 2 * rank)
+        comm.send(obj = bigramCount,  dest = destination, tag = 2 * rank + 1)
 
     else:
         raise Exception('Error: Unknown merge method.')
