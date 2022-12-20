@@ -1,3 +1,8 @@
+#Student Name: Isil Su Karakuzu Aral Dortogul 
+#Student Number: 2020400144 2018402108
+#Compile Status: Compiling
+#Program Status: Working
+
 from mpi4py import MPI
 import re
 import sys
