@@ -84,8 +84,8 @@ if rank == 0:
                 totalBigramCount[bigram] = totalUnigramCount.get(bigram, 0) + count
 
         ## TODO: Erase these later    
-        #print ("TOTAL UNIGRAMS\n",totalUnigramCount)
-        #print ("TOTAL BIGRAMS\n", totalBigramCount)
+        print ("TOTAL UNIGRAMS\n",totalUnigramCount)
+        print ("TOTAL BIGRAMS\n", totalBigramCount)
 
     # Case 2
     elif args['merge_method'] == 'WORKERS':
@@ -98,6 +98,18 @@ if rank == 0:
         raise Exception('Error: Unknown merge method.')
 
     # TODO: Requiement 4 (Calculating conditional probabilities)
+
+    text_file = open(args['test_file']) 
+        
+    for line in text_file:
+        a = line.split(" ")[0]
+        b = line.split(" ")[1]
+        denominator = totalUnigramCount[a]
+        nominator = totalBigramCount[line]
+        cond_prob = nominator / denominator
+        print ("P(" + b + "|" + a + ") =" + cond_prob)
+
+    text_file.close()   
 
 ### Worker process ###
 else:
@@ -139,9 +151,26 @@ else:
     elif merge_method == 'WORKERS':
 
         # TODO: get data from previous worker (don't do this if rank == 1)
+        if(rank != 1):
+            unigramCount = comm.recv(source = rank - 1, tag = 2 * rank)
+            bigramCount  = comm.recv(source = rank - 1, tag = 2 * rank + 1)
+
         # TODO: merge this worker's data and the data obtained from the previous worker
-        # TODO: send merged data to next worker (or to master if rank == workerCount)
+        for unigram, count in unigramCount.items():
+            totalUnigramCount[unigram] = totalUnigramCount.get(unigram, 0) + count
         
+        # Merge bigrams counted by the worker
+        for bigram, count in  bigramCount.items():
+            totalBigramCount[bigram] = totalUnigramCount.get(bigram, 0) + count
+
+        # TODO: send merged data to next worker (or to master if rank == workerCount)
+        if(rank == workerCount):
+            comm.send(obj = unigramCount, dest = rank + 1, tag = 2 * rank)
+            comm.send(obj = bigramCount,  dest = rank + 1, tag = 2 * rank + 1)
+        else:
+            comm.send(obj = unigramCount, dest = 0, tag = 2 * rank)
+            comm.send(obj = bigramCount,  dest = 0, tag = 2 * rank + 1)
         print('handle unigram and bigram data here')
+
     else:
         raise Exception('Error: Unknown merge method.')
