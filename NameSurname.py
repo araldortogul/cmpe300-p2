@@ -81,11 +81,11 @@ if rank == 0:
             
             # Merge bigrams counted by the worker
             for bigram, count in  bigramCount.items():
-                totalBigramCount[bigram] = totalUnigramCount.get(bigram, 0) + count
+                totalBigramCount[bigram] = totalBigramCount.get(bigram, 0) + count
 
         ## TODO: Erase these later    
-        print ("TOTAL UNIGRAMS\n",totalUnigramCount)
-        print ("TOTAL BIGRAMS\n", totalBigramCount)
+        #print ("TOTAL UNIGRAMS\n",totalUnigramCount)
+        #print ("TOTAL BIGRAMS\n", totalBigramCount)
 
     # Case 2
     elif args['merge_method'] == 'WORKERS':
@@ -99,17 +99,19 @@ if rank == 0:
 
     # TODO: Requiement 4 (Calculating conditional probabilities)
 
-    text_file = open(args['test_file']) 
-        
-    for line in text_file:
-        a = line.split(" ")[0]
-        b = line.split(" ")[1]
+    text_file2 = open(args['test_file']) 
+    
+    for line in text_file2:
+        temp = line[:-1]
+        a = temp.split(" ")[0]
+        b = temp.split(" ")[1]
         denominator = totalUnigramCount[a]
-        nominator = totalBigramCount[line]
+        nominator = totalBigramCount[temp]
         cond_prob = nominator / denominator
-        print ("P(" + b + "|" + a + ") =" + cond_prob)
+        str_cond_prob = str(cond_prob)
+        print ("P(" + b + "|" + a + ")= " + str_cond_prob)
 
-    text_file.close()   
+    text_file2.close()   
 
 ### Worker process ###
 else:
@@ -152,16 +154,16 @@ else:
 
         # TODO: get data from previous worker (don't do this if rank == 1)
         if(rank != 1):
-            unigramCount = comm.recv(source = rank - 1, tag = 2 * rank)
-            bigramCount  = comm.recv(source = rank - 1, tag = 2 * rank + 1)
+            unigramCount2 = comm.recv(source = rank - 1, tag = 2 * rank)
+            bigramCount2  = comm.recv(source = rank - 1, tag = 2 * rank + 1)
 
         # TODO: merge this worker's data and the data obtained from the previous worker
-        for unigram, count in unigramCount.items():
-            totalUnigramCount[unigram] = totalUnigramCount.get(unigram, 0) + count
+            for unigram, count in unigramCount2.items():
+                unigramCount[unigram] = unigramCount.get(unigram, 0) + count
         
         # Merge bigrams counted by the worker
-        for bigram, count in  bigramCount.items():
-            totalBigramCount[bigram] = totalUnigramCount.get(bigram, 0) + count
+            for bigram, count in  bigramCount.items():
+                bigramCount[bigram] = bigramCount.get(bigram, 0) + count
 
         # TODO: send merged data to next worker (or to master if rank == workerCount)
         if(rank == workerCount):
